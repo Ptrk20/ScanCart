@@ -440,6 +440,10 @@ the HTML cache.
   then generates `public/sw.js` with the Next build ID as its cache version.
   Deploy that generated file together with the build and public assets;
   running bare `next build` skips worker generation.
+  Generation reads the build ID and worker source only; it does not depend on
+  `.next/server/app/index.html` or other prerendered HTML files, whose presence
+  can differ between local and hosted builds. During installation, the worker
+  fetches the deployed core pages and caches the scripts/styles they reference.
 - Vercel uses the checked-in `vercel.json` build command, `npm run build`, so
   worker generation also runs in deployments. After deploying, `/sw.js` must
   return HTTP 200 with JavaScript, not a 404 or an HTML error page.

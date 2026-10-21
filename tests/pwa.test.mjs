@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
-import { readFile } from "node:fs/promises";
-import { applicationAssets, corePages } from "../scripts/build-pwa.mjs";
+import { readFile, mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { buildPwa, corePages } from "../scripts/build-pwa.mjs";
 import manifest from "../src/app/manifest.ts";
 
 const workerSource = await readFile(new URL("../src/lib/pwa/service-worker.js", import.meta.url), "utf8");
@@ -103,9 +105,33 @@ test("production and Vercel builds include service-worker generation", async () 
   assert.equal(vercel.buildCommand, "npm run build");
 });
 
-test("asset discovery includes only local Next static scripts/styles and deduplicates", () => {
-  assert.deepEqual(applicationAssets(`${html}<script src="/_next/static/chunks/app.js"></script><a href="/basket">Basket</a><script src="https://other.test/js"></script>`),
-    ["/_next/static/chunks/app.js", "/_next/static/chunks/app.css"]);
+test("worker generation succeeds without prerendered HTML files in the build output", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "scancart-pwa-build-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  for (const directory of [".next", "public", path.join("src", "lib", "pwa")]) {
+    await mkdir(path.join(root, directory), { recursive: true });
+  }
+  await writeFile(path.join(root, ".next", "BUILD_ID"), "deployment-build\n");
+  await writeFile(path.join(root, "src", "lib", "pwa", "service-worker.js"), workerSource);
+  await buildPwa(root);
+  const generated = await readFile(path.join(root, "public", "sw.js"), "utf8");
+  const context = { self: { addEventListener() {} } };
+  vm.runInNewContext(`${generated}\nglobalThis.config = CONFIG;`, context);
+  assert.equal(context.config.version, "deployment-build");
+  assert.deepEqual(Array.from(context.config.pages), corePages);
+  assert.ok(context.config.assets.includes("/offline.html"));
+  assert.ok(context.config.assets.includes("/icons/icon-512.png"));
+  assert.ok(generated.endsWith(workerSource));
+});
+
+test("worker installation discovers only local build assets from served page HTML", async () => {
+  const h = harness();
+  await h.dispatch("install");
+  const cache = await h.caches.open(cacheName);
+  assert.ok(await cache.match("/_next/static/chunks/app.js"));
+  assert.ok(await cache.match("/_next/static/chunks/app.css"));
+  assert.equal(h.fetched.filter(url => url.endsWith("/_next/static/chunks/app.js")).length, 1);
+  assert.equal(h.fetched.filter(url => url.endsWith("/_next/static/chunks/app.css")).length, 1);
 });
 
 test("worker installs the core shell without forcing updates or reading IndexedDB", async () => {
