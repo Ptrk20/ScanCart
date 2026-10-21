@@ -5,7 +5,7 @@ import { CameraSession, type CameraDevice, type CameraState } from "@/lib/scanne
 import { createBrowserCamera } from "@/lib/scanner/browser-camera";
 import { cameraErrorMessage } from "@/lib/scanner/codes";
 
-export function BarcodeScanner({ onDetected, onManualEntry }: { onDetected: (code: string, format?: string) => void; onManualEntry: () => void }) {
+export function BarcodeScanner({ onDetected, onManualEntry, autoStart = true }: { onDetected: (code: string, format?: string) => void; onManualEntry: () => void; autoStart?: boolean }) {
   const video = useRef<HTMLVideoElement>(null);
   const session = useRef<CameraSession | null>(null);
   const [status, setStatus] = useState<CameraState>("idle");
@@ -33,6 +33,7 @@ export function BarcodeScanner({ onDetected, onManualEntry }: { onDetected: (cod
     const pageHide = () => camera.stop();
     document.addEventListener("visibilitychange", inactive);
     window.addEventListener("pagehide", pageHide);
+    if (autoStart && document.visibilityState === "visible") void camera.start();
     return () => {
       document.removeEventListener("visibilitychange", inactive);
       window.removeEventListener("pagehide", pageHide);
@@ -41,7 +42,7 @@ export function BarcodeScanner({ onDetected, onManualEntry }: { onDetected: (cod
       setStatus("idle");
       setError(null);
     };
-  }, []);
+  }, [autoStart]);
 
   function start(deviceId?: string) {
     setError(null);
@@ -49,12 +50,12 @@ export function BarcodeScanner({ onDetected, onManualEntry }: { onDetected: (cod
   }
   const active = status === "starting" || status === "scanning";
   return (
-    <section className="card space-y-4 p-5" aria-label="Camera scanner">
-      <p className="text-sm leading-6 text-muted">ScanCart uses your camera only to read product barcodes and QR codes. Video is processed locally, never uploaded or saved.</p>
-      <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-forest">
+    <section className="card space-y-4 p-3 sm:p-5" aria-label="Camera scanner">
+      <div className="relative h-[55svh] min-h-80 max-h-[36rem] overflow-hidden rounded-2xl bg-forest">
         <video ref={video} muted playsInline aria-label="Live camera preview" className="h-full w-full object-contain" />
         <div aria-hidden="true" className="pointer-events-none absolute inset-x-8 inset-y-12 rounded-xl border-2 border-lime" />
       </div>
+      <p className="text-sm leading-6 text-muted">Opening Scan starts your camera. Video is processed locally, never uploaded or saved.</p>
       <p className="text-xs leading-5 text-muted">Keep the whole barcode and its white margins visible in good light. Move closer until the bars look sharp, then hold still. If the image is blurry, move back slightly. The frame is a guide; decoding uses the full video image.</p>
       <p role="status" aria-live="polite" className="text-sm font-semibold">{status === "starting" ? "Starting camera... Check the browser permission prompt." : status === "scanning" ? "Camera is scanning. Position a barcode or QR code in view." : status === "error" ? "Camera stopped. Manual code entry is available below." : "Camera is off. Press Start Camera when ready."}</p>
       {error && <p role="alert" className="form-error">{error}</p>}

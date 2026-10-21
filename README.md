@@ -254,8 +254,10 @@ Keep browser-only storage and camera APIs out of server-rendered modules.
 
 ## Barcode and QR scanning (Phase 8)
 
-- `/scan` requires an active shopping session. Opening Home or Scan never starts
-  a camera automatically. Press **Start Camera** to request permission. Keep
+- `/scan` requires an active shopping session. Opening Scan automatically starts
+  the camera and requests browser permission if needed; Home never starts it.
+  The phone preview is taller, with a viewport-based height and full-feed display.
+  **Start Camera** remains available after stopping or if automatic startup is blocked. Keep
   **Enter Code Manually** and **Add Item Manually** available as fallbacks.
 - Uses `@zxing/browser` and its `@zxing/library` peer, loaded only on intentional
   camera activation. Supported formats: EAN-13, EAN-8, UPC-A, UPC-E, Code 128,
@@ -293,8 +295,9 @@ Keep browser-only storage and camera APIs out of server-rendered modules.
   Scanner codes longer than 512 characters or containing unsupported control
   characters cannot be used; a bounded preview and manual fallback are shown.
   Payloads are not placed in route URLs or interpreted as a price.
-- After success, choose **Scan Another Item** or **View Basket**. Camera activation
-  remains explicit on every retry. Reload discards transient scan/confirmation
+- After success, choose **Scan Another Item** to restart the camera, or **View Basket**.
+  Manual code entry stops capture without automatically restarting on validation errors.
+  Reload discards transient scan/confirmation
   state, not saved products or basket. Errors have actionable retry/manual paths.
 - Tests cover code inspection, real QR-pixel decoding, injected camera lifecycle
   (deduplication, cancellation, late grants, switching and failures), and persistence
@@ -484,7 +487,7 @@ the HTML cache.
 - Cached pages can read and update local products, basket, sessions and
   histories. Initial installation needs a connection. Activate the scanner
   online once to cache its lazy ZXing resources before relying on it offline.
-  Camera activation stays explicit, permissions still apply, and manual entry
+  Opening Scan starts capture automatically; permissions still apply, and manual entry
   remains available. Nothing uploads camera video.
 - The offline banner reflects the browser's connectivity signal, not a
   guarantee that the server is reachable. If a refresh cannot reach the

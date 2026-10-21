@@ -25,11 +25,12 @@ export function ScannerDashboard() {
   const [manual, setManual] = useState("");
   const [manualError, setManualError] = useState<string | null>(null);
   const [cameraKey, setCameraKey] = useState(0);
+  const [autoStart, setAutoStart] = useState(true);
   const input = useRef<HTMLInputElement>(null);
   const lock = useRef(false);
   const generation = useRef(0);
 
-  useEffect(() => () => { generation.current++; lock.current = false; setResult({ status: "ready" }); setManual(""); setManualError(null); }, [activeSession?.id]);
+  useEffect(() => () => { generation.current++; lock.current = false; setResult({ status: "ready" }); setManual(""); setManualError(null); setAutoStart(true); }, [activeSession?.id]);
 
   function reset() {
     generation.current++;
@@ -37,6 +38,7 @@ export function ScannerDashboard() {
     setResult({ status: "ready" });
     setManual("");
     setManualError(null);
+    setAutoStart(true);
     setCameraKey((key) => key + 1);
   }
   async function lookup(code: string) {
@@ -63,7 +65,8 @@ export function ScannerDashboard() {
   }
   function submitManual(event: FormEvent) {
     event.preventDefault();
-    // Remounting the camera stops even a pending permission request before lookup.
+    // Manual lookup must stop pending capture without restarting it on invalid input.
+    setAutoStart(false);
     setCameraKey((key) => key + 1);
     process(manual);
   }
@@ -77,7 +80,7 @@ export function ScannerDashboard() {
     <div className="min-w-0 space-y-5">
       <p className="break-words text-sm text-muted">Shopping at <strong>{activeSession.store}</strong></p>
       {result.status === "ready" && <>
-        <BarcodeScanner key={cameraKey} onDetected={process} onManualEntry={() => input.current?.focus()} />
+        <BarcodeScanner key={cameraKey} autoStart={autoStart} onDetected={process} onManualEntry={() => { setAutoStart(false); input.current?.focus(); }} />
         <form onSubmit={submitManual} noValidate className="card space-y-4 p-5" aria-label="Manual code entry">
           <h2 className="text-lg font-bold">Can&apos;t scan? Enter the code.</h2>
           <div>
@@ -115,7 +118,7 @@ export function ScannerDashboard() {
       </section>}
       {result.status === "added" && <section className="card space-y-4 p-5">
         <p role="status" className="break-words font-semibold">{result.name} was added to your basket.</p>
-        <p className="text-sm text-muted">The camera is off. Choose Scan Another Item, then Start Camera when ready.</p>
+        <p className="text-sm text-muted">The camera is off. Choose Scan Another Item to open it again.</p>
         <div className="flex flex-wrap gap-3">
           <button type="button" onClick={reset} className="button bg-forest text-white">Scan Another Item</button>
           <Link href="/basket" className="button border border-line text-forest">View Basket</Link>
