@@ -529,4 +529,4 @@ the HTML cache.
 
 Camera access will require HTTPS on deployed devices (localhost is allowed
 for development). Data is local to the browser/device and may be
-cleared by the browser; no cloud synchronization is planned for this version.
+cleared by the browser; no cloud synchronization is planned for this version..
