@@ -440,6 +440,14 @@ the HTML cache.
   then generates `public/sw.js` with the Next build ID as its cache version.
   Deploy that generated file together with the build and public assets;
   running bare `next build` skips worker generation.
+- Vercel uses the checked-in `vercel.json` build command, `npm run build`, so
+  worker generation also runs in deployments. After deploying, `/sw.js` must
+  return HTTP 200 with JavaScript, not a 404 or an HTML error page.
+  If it returns 404, check the deployment build log for the `ScanCart PWA`
+  generation message and confirm the full build command ran.
+  Reopen the installed app online and wait for "This page is saved for offline
+  use" before testing without a connection. Do not clear site data or uninstall
+  as a troubleshooting step: local shopping records may be lost.
 - The optional VS Code **PWA production preview** task serves the production
   build at `http://127.0.0.1:54230`.
 - Deploy at the origin root over HTTPS. Camera access and service workers

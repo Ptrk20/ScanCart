@@ -96,6 +96,13 @@ test("manifest is branded, scoped, standalone and references correctly sized loc
   assert.ok(data.icons.some(icon => icon.purpose === "maskable"));
 });
 
+test("production and Vercel builds include service-worker generation", async () => {
+  const pkg = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+  const vercel = JSON.parse(await readFile(new URL("../vercel.json", import.meta.url), "utf8"));
+  assert.equal(pkg.scripts.build, "next build && node scripts/build-pwa.mjs");
+  assert.equal(vercel.buildCommand, "npm run build");
+});
+
 test("asset discovery includes only local Next static scripts/styles and deduplicates", () => {
   assert.deepEqual(applicationAssets(`${html}<script src="/_next/static/chunks/app.js"></script><a href="/basket">Basket</a><script src="https://other.test/js"></script>`),
     ["/_next/static/chunks/app.js", "/_next/static/chunks/app.css"]);
